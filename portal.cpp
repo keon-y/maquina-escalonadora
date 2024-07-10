@@ -32,14 +32,14 @@ void send_server(const std::string &file_name,
     else
     {
         std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(rd()); // mt19937 algoritmo de geração de random numbers
         std::uniform_int_distribution<> dis(0, server_list.size() - 1);
-        server_index = dis(gen);
+        server_index = dis(gen); // recebe o valor aleatório
     }
 
     if ((server_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        std::cerr << "Erro ao criar socket" << std::endl;
+        // std::cerr << "Erro ao criar socket" << std::endl;
         return;
     }
 
@@ -48,28 +48,30 @@ void send_server(const std::string &file_name,
 
     if (inet_pton(AF_INET, server_list[server_index].first.c_str(), &serv_addr.sin_addr) <= 0)
     {
-        std::cerr << "Endereco invalido" << std::endl;
+        // std::cerr << "Endereco invalido" << std::endl;
         close(server_sock);
         return;
     }
 
     if (connect(server_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        std::cerr << "Falha de conexao" << std::endl;
+        // std::cerr << "Falha de conexao" << std::endl;
         close(server_sock);
         return;
     }
-    //manda as informacoes pro server
+    // manda as informacoes pro server
     if (send_message(server_sock, file_name) <= 0)
         return;
     if (send_message(server_sock, file_content) <= 0)
         return;
 
-    //recebe a resposta
+    // recebe a resposta
     receive_message(server_sock, response);
 
     // atualiza no map
     {
+        // ele nao tenta alterar o mesmo campo que outro, o file_name alterado garante isso
+        // mas é bom garantir, já que estamos usando threads
         std::lock_guard<std::mutex> lock(mtx);
         responses.emplace(file_name, response);
     }
@@ -84,9 +86,9 @@ void handle_client(int client_sock, const std::vector<std::pair<std::string, int
     int id = 0;
     while (true)
     {
-        //recebe o nome do arquivo, se tamanho for 0, significa que o client deu o handshake e acabou os arquivos
+        // recebe o nome do arquivo, se tamanho for 0, significa que o client deu o handshake e acabou os arquivos
         std::string file_name;
-        if (receive_message(client_sock, file_name) <= 0)
+        if (receive_message(client_sock, file_name) <= 0 || file_name == "\r\n")
         {
             break;
         }
@@ -95,7 +97,7 @@ void handle_client(int client_sock, const std::vector<std::pair<std::string, int
 
         // recebe o conteudo
         std::string file_content;
-        if (receive_message(client_sock, file_content) <= 0)
+        if (receive_message(client_sock, file_content) < 0)
         {
             break;
         }
@@ -103,7 +105,7 @@ void handle_client(int client_sock, const std::vector<std::pair<std::string, int
         server_threads.emplace_back(send_server, file_name, file_content, std::ref(responses), std::cref(server_list), use_round_robin);
     }
 
-    for (auto &server_thread : server_threads) //junta as threads para enviar tudo junto pro cliente
+    for (auto &server_thread : server_threads) // junta as threads para enviar tudo junto pro cliente
     {
         if (server_thread.joinable())
         {
@@ -113,8 +115,10 @@ void handle_client(int client_sock, const std::vector<std::pair<std::string, int
 
     for (const auto &[file_name, response] : responses)
     {
-        if (send_message(client_sock, file_name) < 0) return;
-        if (send_message(client_sock,  response) < 0) return;
+        if (send_message(client_sock, file_name) < 0)
+            return;
+        if (send_message(client_sock, response) < 0)
+            return;
     }
 }
 
@@ -122,7 +126,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 9)
     {
-        std::cerr << "Usage: " << argv[0] << "<porta> <round_robin> <ipserver1> <portserver1> <ipserver2> <portserver2> <ipserver3> <portserver3>\n";
+        std::cerr << "Usage: " << argv[0] << " <porta> <round_robin> <ipserver1> <portserver1> <ipserver2> <portserver2> <ipserver3> <portserver3>\n";
         return 1;
     }
 
@@ -139,14 +143,14 @@ int main(int argc, char *argv[])
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
-        std::cerr << "Falha ao criar socket" << std::endl;
+        // std::cerr << "Falha ao criar socket" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    //debug tava muito ruim de ficar reiniciando toda hora e mudar de port
+    // debug tava muito ruim de ficar reiniciando toda hora e mudar de port
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
     {
-        std::cerr << "Falha ao configurar opcoes do socket" << std::endl;
+        // std::cerr << "Falha ao configurar opcoes do socket" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -156,13 +160,13 @@ int main(int argc, char *argv[])
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
     {
-        std::cerr << "Falha ao bindar" << std::endl;
+        // std::cerr << "Falha ao bindar" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (listen(server_fd, 3) < 0)
+    if (listen(server_fd, 10) < 0)
     {
-        std::cerr << "Falha no listen" << std::endl;
+        // std::cerr << "Falha no listen" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -170,12 +174,12 @@ int main(int argc, char *argv[])
     {
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
         {
-            std::cerr << "Falha ao aceitar socket" << std::endl;
+            // std::cerr << "Falha ao aceitar socket" << std::endl;
             exit(EXIT_FAILURE);
         }
         std::thread client_thread(handle_client, new_socket, server_list, use_round_robin);
         client_thread.detach();
-        //o cliente que fecha o socket, nao precisa do close aqui
+        // o cliente que fecha o socket, nao precisa do close aqui
     }
     return 0;
 }

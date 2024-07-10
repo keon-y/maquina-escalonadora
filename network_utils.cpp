@@ -1,5 +1,4 @@
 #include "network_utils.hpp"
-#include <iostream>
 #include <cstring>
 #include <sys/socket.h>
 #include <cstdint>
@@ -23,13 +22,11 @@ int send_message(int socket, const std::string& message) {
 
     // primeiro avisa a quantidade de bytes que vai na mensagem (tamanho fixo de 4 bytes de header)
     if (send_all(socket, reinterpret_cast<const char*>(&message_size), sizeof(message_size)) == -1) {
-        std::cerr << "Erro ao enviar o tamanho da mensagem." << std::endl; 
         return -1;
     }
 
     // envia a mensagem
     if (send_all(socket, message.c_str(), message_size) == -1) {
-        std::cerr << "Erro ao enviar a mensagem." << std::endl;
         return -1;
     }
 
@@ -57,7 +54,6 @@ int receive_message(int sock, std::string &message) {
     
     // recebe o header fixo de 4 bytes que diz quantos bytes vem
     if (recv_all(sock, reinterpret_cast<char*>(&message_size), sizeof(message_size)) <= 0) {
-        std::cerr << "Erro ao receber o tamanho da mensagem." << std::endl;
         return -1;
     }
 
@@ -68,7 +64,6 @@ int receive_message(int sock, std::string &message) {
     // recebe a mensagem de tamanho message_size
     char buffer[10000] = {0}; // chutei um valor alto, o ideal seria colocar 2e32 visto que eh o tamanho maximo da mensagem, mas para um trabalho 10000 ta de otimo tamanho
     if (recv_all(sock, buffer, message_size) <= 0) {
-        std::cerr << "Erro ao receber a mensagem." << std::endl;
         return -1;
     }
     buffer[message_size] = '\0'; // coloca o \0 no final da string (provavelmente o construtor ja faz isso mas sao 11:06 do dia 09/07 e estou com preguica de testar desculpa professor!)
