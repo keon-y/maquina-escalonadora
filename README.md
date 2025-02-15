@@ -1,7 +1,7 @@
 
 # Máquina escalonadora
 
-Trabalho sobre camada de aplicação, matéria de Redes de Computadores. Docente **Rubens Barbosa Filho** e discente **Victor Keony Okabayashi**.
+Trabalho sobre camada de aplicação, matéria de Redes de Computadores. Esse trabalho envolve conceitos de threads e pacotes TCP.
 
 ## Como compilar
 
