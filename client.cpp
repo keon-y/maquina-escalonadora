@@ -7,8 +7,8 @@
 #include <thread>
 #include <filesystem>
 #include <map>
+#include <cstring>
 #include "network_utils.hpp"
-
 
 // dado um vetor de strings contendo nome de arquivos, envia todos para o socket sock
 void sendFiles(const std::vector<std::string> &files, int sock)
@@ -22,7 +22,7 @@ void sendFiles(const std::vector<std::string> &files, int sock)
         std::ifstream file(filename);
         if (!file)
         {
-            std::cerr << filename << " nao foi encontrado" <<std::endl;
+            std::cerr << filename << " nao foi encontrado" << std::endl;
             continue;
         }
 
@@ -38,7 +38,7 @@ void sendFiles(const std::vector<std::string> &files, int sock)
         sent_files++;
     }
 
-    send_message(sock, "");              // handshake para sinalizar que acabou o envio
+    send_message(sock, "\r\n"); // handshake para sinalizar que acabou o envio
 
     for (int i = 0; i < sent_files; i++) // receber as respostas de todos os arquivos fontes enviados
     {
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     while (true)
     {
         int sock;
-        if (( sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         {
             std::cerr << "Erro ao criar socket" << std::endl;
             return 0;
@@ -118,10 +118,18 @@ int main(int argc, char *argv[])
             }
             if (empty)
                 std::cout << "0" << std::endl;
+            
+            close(sock);
         }
-        else if (input.at(0) == 'Q' || input.at(0) == 'q') //sair
+        else if (input.at(0) == 'Q' || input.at(0) == 'q') {
+            close(sock);
             break;
-
+        }
+        else {
+            close(sock);
+            std::cin.clear();
+            continue;
+        }
         std::cin.clear();
     }
 
